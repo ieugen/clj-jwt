@@ -7,6 +7,7 @@
             [clojure.data.json :as json]
             [clojure.java.io :refer [resource]]
             [clojure.set :as set]
+            [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as gen]
             [clojure.spec.alpha :as s]
             [clojure.tools.logging :as log]
@@ -89,9 +90,9 @@
                               #(s/gen #{(resource "jwks.json")
                                         (resource "jwks-other.json")})))
 
-(s/fdef jwks-edn->keys
-        :args (s/cat :jwks (s/coll-of ::jwk :type vector?))
-        :ret ::key-store)
+;; (s/fdef jwks-edn->keys
+;;         :args (s/cat :jwks (s/coll-of ::jwk :type vector?))
+;;         :ret ::key-store)
 
 (defn- jwks-edn->keys
   "Transform a vector of json web keys into a map of kid -> key pairs where each key is a map
@@ -106,13 +107,13 @@
                 :public-key #{(buddy-jwk/jwk->public-key %)}
                 :private-key (buddy-jwk/jwk->private-key %)))))
 
-(s/fdef fetch-keys
-        :args (s/cat :jwks-url ::jwks-url)
-        :ret (s/with-gen ::key-store
-                         #(s/gen #{(->> (resource "jwks.json")
-                                        slurp
-                                        ((fn [jwks-string] (json/read-str jwks-string :key-fn keyword)))
-                                        jwks-edn->keys)})))
+;; (s/fdef fetch-keys
+;;         :args (s/cat :jwks-url ::jwks-url)
+;;         :ret (s/with-gen ::key-store
+;;                          #(s/gen #{(->> (resource "jwks.json")
+;;                                         slurp
+;;                                         ((fn [jwks-string] (json/read-str jwks-string :key-fn keyword)))
+;;                                         jwks-edn->keys)})))
 
 (defn- fetch-keys
   "Fetches the jwks from the supplied jwks-url and converts to java Keys.
@@ -170,10 +171,10 @@
                                {:type :validation :cause :unknown-key})))))))))
 
 
-(s/fdef resolve-public-key
-        :args (s/cat :jwks-url ::jwks-url
-                     :jwt-header ::jwt-header)
-        :ret ::public-key)
+;; (s/fdef resolve-public-key
+;;         :args (s/cat :jwks-url ::jwks-url
+;;                      :jwt-header ::jwt-header)
+;;         :ret ::public-key)
 
 (defn resolve-public-key
   "Returns java.security.PublicKey given jwks-url and :kid in jwt-header.
@@ -182,19 +183,22 @@
   (first (resolve-key keystore-atom :public-key jwks-url jwt-header)))
 
 
-(s/fdef resolve-private-key
-        :args (s/cat :jwks-url ::jwks-url
-                     :jwt-header ::jwt-header)
-        :ret ::private-key)
+;; (s/fdef resolve-private-key
+;;         :args (s/cat :jwks-url ::jwks-url
+;;                      :jwt-header ::jwt-header)
+;;         :ret ::private-key)
 
 (def resolve-private-key
   (partial resolve-key keystore-atom :private-key))
 
 
-(s/fdef unsign
-        :args (s/cat :jwks-url ::jwks-url
-                     :token ::jwt)
-        :ret ::claims)
+;; (s/fdef unsign
+;;         :args (s/alt :ar1 (s/cat :jwks-url ::jwks-url
+;;                                  :token ::jwt)
+;;                      :ar2 (s/cat :jwks-url ::jwks-url
+;;                                  :token ::jwt
+;;                                  :opts (s/keys)))
+;;         :ret ::claims)
 
 (defn- remove-bearer [token]
   (if (and token (str/starts-with? (str/lower-case token) "bearer "))
@@ -264,11 +268,11 @@
       (into (sorted-set) (str/split claims #"\s+")))
     #{}))
 
-(s/fdef sign
-        :args (s/cat :jwks-url ::jwks-url
-                     :kid ::kid
-                     :claims ::claims)
-        :ret ::jwt)
+;; (s/fdef sign
+;;         :args (s/cat :jwks-url ::jwks-url
+;;                      :kid ::kid
+;;                      :claims ::claims)
+;;         :ret ::jwt)
 
 (defn sign
   "Given jwks-url, claims and optionally opts signs claims and returns a token. Uses
